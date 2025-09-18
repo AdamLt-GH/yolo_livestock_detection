@@ -1,0 +1,32 @@
+# Python files
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Environments
+.env
+.venv/
+venv/
+env/
+
+# Datasets and generated files
+dataset/
+merged_ds/
+raw_dataset/
+images/
+labels/
+runs/
+*.pt
+
+# Private project documents
+documents/
+
+# Editor and system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
