@@ -24,4 +24,14 @@ Install the requirements:
 python3 -m pip install -r requirements.txt
 ```
 
-The project is still being set up. The dataset tools and model pipeline will be added next.
+## Merge datasets
+
+The first dataset tool combines YOLO datasets that have matching `images` and `labels` folders:
+
+```bash
+python3 demo_yolo/merge_to_yolo.py \
+  --out merged_ds \
+  raw_dataset/source_one raw_dataset/source_two
+```
+
+The model pipeline will be added next.
