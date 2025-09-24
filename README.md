@@ -31,7 +31,11 @@ The first dataset tool combines YOLO datasets that have matching `images` and `l
 ```bash
 python3 demo_yolo/merge_to_yolo.py \
   --out merged_ds \
+  --val-ratio 0.2 \
+  --test-ratio 0.1 \
   raw_dataset/source_one raw_dataset/source_two
 ```
+
+The script checks the label values before copying them and creates separate train, validation and test folders. The random split uses seed 42 by default so it can be repeated.
 
 The model pipeline will be added next.
