@@ -1,10 +1,10 @@
 """Merge a few YOLO datasets into one folder."""
 
 import argparse
+import json
 import random
 import shutil
 from pathlib import Path
-
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 SPLITS = ("train", "val", "test")
@@ -45,7 +45,18 @@ def next_name(image_path, used_names):
     return name
 
 
-def clean_labels(label_path):
+def load_classes(classes_path):
+    names = [
+        line.strip()
+        for line in classes_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    if not names:
+        raise ValueError("The classes file is empty")
+    return names
+
+
+def clean_labels(label_path, max_class_id):
     cleaned = []
 
     for line in label_path.read_text(encoding="utf-8").splitlines():
@@ -59,7 +70,7 @@ def clean_labels(label_path):
         except ValueError:
             continue
 
-        if class_id < 0:
+        if not 0 <= class_id <= max_class_id:
             continue
         if not (0 <= x <= 1 and 0 <= y <= 1):
             continue
@@ -71,6 +82,20 @@ def clean_labels(label_path):
         )
 
     return cleaned
+
+
+def write_dataset_yaml(output_dir, class_names):
+    lines = [
+        f"path: {output_dir.resolve()}",
+        "train: images/train",
+        "val: images/val",
+        "test: images/test",
+        f"nc: {len(class_names)}",
+        "names: [" + ", ".join(json.dumps(name) for name in class_names) + "]",
+    ]
+    (output_dir / "dataset.yaml").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def split_pairs(pairs, val_ratio, test_ratio, seed):
@@ -86,7 +111,7 @@ def split_pairs(pairs, val_ratio, test_ratio, seed):
     }
 
 
-def merge_datasets(sources, output_dir, val_ratio, test_ratio, seed):
+def merge_datasets(sources, output_dir, class_names, val_ratio, test_ratio, seed):
     for split in SPLITS:
         (output_dir / "images" / split).mkdir(parents=True, exist_ok=True)
         (output_dir / "labels" / split).mkdir(parents=True, exist_ok=True)
@@ -105,7 +130,8 @@ def merge_datasets(sources, output_dir, val_ratio, test_ratio, seed):
         used_names = {path.name.lower() for path in images_out.glob("*")}
 
         for image_path, label_path in pairs:
-            labels = clean_labels(label_path)
+            labels = clean_labels(label_path, len(class_names) - 1)
+
             if not labels:
                 print(f"[WARN] No valid labels in {label_path}")
                 continue
@@ -126,6 +152,7 @@ def build_parser():
     parser = argparse.ArgumentParser(
         description="Merge YOLO datasets that contain images and labels folders"
     )
+    parser.add_argument("--classes", required=True, help="File with one class per line")
     parser.add_argument("--out", required=True, help="Output dataset folder")
     parser.add_argument("--val-ratio", type=float, default=0.2)
     parser.add_argument("--test-ratio", type=float, default=0.0)
@@ -141,10 +168,12 @@ def main():
     if args.val_ratio + args.test_ratio >= 1:
         raise SystemExit("Validation and test ratios must add up to less than 1")
 
+    class_names = load_classes(Path(args.classes))
     sources = [Path(source) for source in args.sources]
     copied = merge_datasets(
         sources,
         Path(args.out),
+        class_names,
         args.val_ratio,
         args.test_ratio,
         args.seed,
@@ -153,6 +182,7 @@ def main():
     if copied == 0:
         raise SystemExit("No labelled images were copied")
 
+    write_dataset_yaml(Path(args.out), class_names)
     print(f"[INFO] Finished merging {copied} labelled images")
 
 

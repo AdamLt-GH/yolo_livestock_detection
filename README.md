@@ -30,12 +30,13 @@ The first dataset tool combines YOLO datasets that have matching `images` and `l
 
 ```bash
 python3 demo_yolo/merge_to_yolo.py \
+  --classes classes.txt \
   --out merged_ds \
   --val-ratio 0.2 \
   --test-ratio 0.1 \
   raw_dataset/source_one raw_dataset/source_two
 ```
 
-The script checks the label values before copying them and creates separate train, validation and test folders. The random split uses seed 42 by default so it can be repeated.
+The classes file contains one livestock class name per line. The script checks class IDs against this list and creates `dataset.yaml` for training. It also creates separate train, validation and test folders. The random split uses seed 42 by default so it can be repeated.
 
 The model pipeline will be added next.
