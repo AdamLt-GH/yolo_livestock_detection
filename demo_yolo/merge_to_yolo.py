@@ -23,9 +23,16 @@ def find_pairs(source):
         if image_path.suffix.lower() not in IMAGE_EXTENSIONS:
             continue
 
-        label_path = labels_dir / f"{image_path.stem}.txt"
-        if label_path.exists():
-            pairs.append((image_path, label_path))
+        text_label = labels_dir / f"{image_path.stem}.txt"
+        json_label = labels_dir / f"{image_path.stem}.json"
+        nearby_json = image_path.with_suffix(".json")
+
+        if text_label.exists():
+            pairs.append((image_path, text_label))
+        elif json_label.exists():
+            pairs.append((image_path, json_label))
+        elif nearby_json.exists():
+            pairs.append((image_path, nearby_json))
         else:
             print(f"[WARN] No label found for {image_path.name}")
 
@@ -84,6 +91,34 @@ def clean_labels(label_path, max_class_id):
     return cleaned
 
 
+def convert_labelme(label_path, class_map, image_width, image_height):
+    data = json.loads(label_path.read_text(encoding="utf-8"))
+    labels = []
+
+    for shape in data.get("shapes", []):
+        class_name = (shape.get("label") or "").strip()
+        points = shape.get("points") or []
+        if class_name not in class_map or not points:
+            continue
+
+        xs = [point[0] for point in points]
+        ys = [point[1] for point in points]
+        x1, x2 = max(0, min(xs)), min(image_width, max(xs))
+        y1, y2 = max(0, min(ys)), min(image_height, max(ys))
+        if x2 <= x1 or y2 <= y1:
+            continue
+
+        x = ((x1 + x2) / 2) / image_width
+        y = ((y1 + y2) / 2) / image_height
+        width = (x2 - x1) / image_width
+        height = (y2 - y1) / image_height
+        labels.append(
+            f"{class_map[class_name]} {x:.6f} {y:.6f} {width:.6f} {height:.6f}"
+        )
+
+    return labels
+
+
 def write_dataset_yaml(output_dir, class_names):
     lines = [
         f"path: {output_dir.resolve()}",
@@ -118,6 +153,7 @@ def merge_datasets(sources, output_dir, class_names, val_ratio, test_ratio, seed
 
     all_pairs = []
     copied = 0
+    class_map = {name: number for number, name in enumerate(class_names)}
 
     for source in sources:
         pairs = find_pairs(source)
@@ -130,7 +166,18 @@ def merge_datasets(sources, output_dir, class_names, val_ratio, test_ratio, seed
         used_names = {path.name.lower() for path in images_out.glob("*")}
 
         for image_path, label_path in pairs:
-            labels = clean_labels(label_path, len(class_names) - 1)
+            if label_path.suffix.lower() == ".txt":
+                labels = clean_labels(label_path, len(class_names) - 1)
+            else:
+                try:
+                    from PIL import Image
+
+                    with Image.open(image_path) as image:
+                        width, height = image.size
+                    labels = convert_labelme(label_path, class_map, width, height)
+                except (OSError, ValueError, json.JSONDecodeError) as error:
+                    print(f"[WARN] Could not convert {label_path}: {error}")
+                    continue
 
             if not labels:
                 print(f"[WARN] No valid labels in {label_path}")

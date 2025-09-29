@@ -37,6 +37,6 @@ python3 demo_yolo/merge_to_yolo.py \
   raw_dataset/source_one raw_dataset/source_two
 ```
 
-The classes file contains one livestock class name per line. The script checks class IDs against this list and creates `dataset.yaml` for training. It also creates separate train, validation and test folders. The random split uses seed 42 by default so it can be repeated.
+The classes file contains one livestock class name per line. The script supports YOLO text labels and LabelMe JSON labels, checks class IDs against the list and creates `dataset.yaml` for training. It also creates separate train, validation and test folders. The random split uses seed 42 by default so it can be repeated.
 
 The model pipeline will be added next.
