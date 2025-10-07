@@ -39,4 +39,17 @@ python3 demo_yolo/merge_to_yolo.py \
 
 The classes file contains one livestock class name per line. The script supports YOLO text labels and LabelMe JSON labels, checks class IDs against the list and creates `dataset.yaml` for training. It also creates separate train, validation and test folders. The random split uses seed 42 by default so it can be repeated.
 
-The model pipeline will be added next.
+## Train a model
+
+The training command uses CPU by default. Use `--device 0` to train with the first CUDA GPU.
+
+```bash
+python3 demo_yolo/yolo_pipeline.py train \
+  --model yolo11n.pt \
+  --data merged_ds/dataset.yaml \
+  --epochs 50 \
+  --run-name livestock_model \
+  --device cpu
+```
+
+The trained weights are saved under `runs/detect/livestock_model/weights`.
