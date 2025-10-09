@@ -25,9 +25,44 @@ def train_model(args):
     print(f"[TRAIN] Finished training. Best weights: {best_weights}")
 
 
+def find_weights(weights, run_name):
+    if weights:
+        return Path(weights)
+    return Path("runs") / "detect" / run_name / "weights" / "best.pt"
+
+
+def validate_model(args):
+    from ultralytics import YOLO
+
+    weights = find_weights(args.weights, args.run_name)
+    print(f"[VAL] Loading weights: {weights}")
+
+    model = YOLO(str(weights))
+    metrics = model.val(
+        data=args.data,
+        split=args.split,
+        device=args.device,
+        verbose=True,
+    )
+
+    values = metrics.results_dict
+    summary = {
+        "Precision": values.get("metrics/precision(B)"),
+        "Recall": values.get("metrics/recall(B)"),
+        "mAP@0.50": values.get("metrics/mAP50(B)"),
+        "mAP@0.50:0.95": values.get("metrics/mAP50-95(B)"),
+    }
+
+    print("[VAL] Results:")
+    for name, value in summary.items():
+        shown = f"{value:.3f}" if value is not None else "not available"
+        print(f"  {name}: {shown}")
+    print(f"  Saved to: {metrics.save_dir}")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Train livestock detection models with Ultralytics YOLO"
+        description="Train and validate livestock detection models"
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -42,6 +77,14 @@ def build_parser():
     train.add_argument("--seed", type=int, default=42)
     train.add_argument("--run-name", default="train")
     train.set_defaults(func=train_model)
+
+    validate = commands.add_parser("val", help="Validate a trained YOLO model")
+    validate.add_argument("--weights")
+    validate.add_argument("--run-name", default="train")
+    validate.add_argument("--data", default="merged_ds/dataset.yaml")
+    validate.add_argument("--split", choices=["val", "test"], default="test")
+    validate.add_argument("--device", default="cpu")
+    validate.set_defaults(func=validate_model)
 
     return parser
 

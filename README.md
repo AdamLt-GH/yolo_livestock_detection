@@ -53,3 +53,17 @@ python3 demo_yolo/yolo_pipeline.py train \
 ```
 
 The trained weights are saved under `runs/detect/livestock_model/weights`.
+
+## Validate a model
+
+Pass the saved weights directly or use the name of an earlier training run:
+
+```bash
+python3 demo_yolo/yolo_pipeline.py val \
+  --run-name livestock_model \
+  --data merged_ds/dataset.yaml \
+  --split test \
+  --device cpu
+```
+
+The command prints precision, recall and mAP results after validation.
