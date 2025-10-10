@@ -60,9 +60,37 @@ def validate_model(args):
     print(f"  Saved to: {metrics.save_dir}")
 
 
+def predict_model(args):
+    from ultralytics import YOLO
+
+    weights = find_weights(args.weights, args.run_name)
+    print(f"[PREDICT] Loading weights: {weights}")
+
+    model = YOLO(str(weights))
+    results = model.predict(
+        source=args.source,
+        conf=args.conf,
+        iou=args.iou,
+        imgsz=args.imgsz,
+        device=args.device,
+        save=args.save,
+        save_txt=args.save_txt,
+        stream=False,
+        name=args.output_name,
+        verbose=True,
+    )
+
+    if not results:
+        print("[PREDICT] No results returned")
+        return
+
+    print(f"[PREDICT] Finished {len(results)} prediction(s)")
+    print(f"[PREDICT] Results saved to: {results[0].save_dir}")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Train and validate livestock detection models"
+        description="Train, validate and run livestock detection models"
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -85,6 +113,19 @@ def build_parser():
     validate.add_argument("--split", choices=["val", "test"], default="test")
     validate.add_argument("--device", default="cpu")
     validate.set_defaults(func=validate_model)
+
+    predict = commands.add_parser("predict", help="Run predictions on images or videos")
+    predict.add_argument("--source", required=True)
+    predict.add_argument("--weights")
+    predict.add_argument("--run-name", default="train")
+    predict.add_argument("--output-name", default="predict")
+    predict.add_argument("--conf", type=float, default=0.25)
+    predict.add_argument("--iou", type=float, default=0.7)
+    predict.add_argument("--imgsz", type=int, default=640)
+    predict.add_argument("--device", default="cpu")
+    predict.add_argument("--save", action=argparse.BooleanOptionalAction, default=True)
+    predict.add_argument("--save-txt", action="store_true")
+    predict.set_defaults(func=predict_model)
 
     return parser
 

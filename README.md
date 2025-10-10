@@ -67,3 +67,17 @@ python3 demo_yolo/yolo_pipeline.py val \
 ```
 
 The command prints precision, recall and mAP results after validation.
+
+## Run predictions
+
+The prediction source can be an image, video or folder of files:
+
+```bash
+python3 demo_yolo/yolo_pipeline.py predict \
+  --run-name livestock_model \
+  --source path/to/images \
+  --output-name livestock_results \
+  --device cpu
+```
+
+Annotated files are saved under `runs/detect/livestock_results` by default.
