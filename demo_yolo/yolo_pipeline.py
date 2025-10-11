@@ -60,6 +60,37 @@ def validate_model(args):
     print(f"  Saved to: {metrics.save_dir}")
 
 
+def save_prediction_counts(results, class_names):
+    import pandas as pd
+
+    if not isinstance(class_names, dict):
+        class_names = dict(enumerate(class_names))
+
+    rows = []
+    for result in results:
+        image_name = Path(getattr(result, "path", "")).name
+        counts = {name: 0 for name in class_names.values()}
+
+        boxes = getattr(result, "boxes", None)
+        if boxes is not None and getattr(boxes, "cls", None) is not None:
+            for class_id in boxes.cls.tolist():
+                class_name = class_names.get(int(class_id), str(int(class_id)))
+                counts[class_name] = counts.get(class_name, 0) + 1
+
+        rows.append({"image": image_name, **counts})
+
+    table = pd.DataFrame(rows).fillna(0).sort_values("image")
+    for column in table.columns:
+        if column != "image":
+            table[column] = table[column].astype(int)
+
+    save_dir = Path(results[0].save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = save_dir / "prediction_counts.csv"
+    table.to_csv(csv_path, index=False)
+    return csv_path
+
+
 def predict_model(args):
     from ultralytics import YOLO
 
@@ -84,8 +115,11 @@ def predict_model(args):
         print("[PREDICT] No results returned")
         return
 
+    class_names = getattr(model, "names", {})
+    csv_path = save_prediction_counts(results, class_names)
     print(f"[PREDICT] Finished {len(results)} prediction(s)")
     print(f"[PREDICT] Results saved to: {results[0].save_dir}")
+    print(f"[PREDICT] Livestock counts saved to: {csv_path}")
 
 
 def build_parser():

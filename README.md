@@ -80,4 +80,4 @@ python3 demo_yolo/yolo_pipeline.py predict \
   --device cpu
 ```
 
-Annotated files are saved under `runs/detect/livestock_results` by default.
+Annotated files are saved under `runs/detect/livestock_results` by default. A `prediction_counts.csv` file is saved in the same folder with the number of each livestock class found in every image.
