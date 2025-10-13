@@ -81,3 +81,15 @@ python3 demo_yolo/yolo_pipeline.py predict \
 ```
 
 Annotated files are saved under `runs/detect/livestock_results` by default. A `prediction_counts.csv` file is saved in the same folder with the number of each livestock class found in every image.
+
+## Clean a dataset
+
+Check for images with missing or empty labels before training:
+
+```bash
+python3 demo_yolo/data_preprocessing/cleanup_yolo_unlabeled.py \
+  merged_ds \
+  --dry-run
+```
+
+Run without `--dry-run` to move those images into `merged_ds/no_label`. Use `--mode delete` only when the files are no longer needed.
