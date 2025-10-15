@@ -93,3 +93,21 @@ python3 demo_yolo/data_preprocessing/cleanup_yolo_unlabeled.py \
 ```
 
 Run without `--dry-run` to move those images into `merged_ds/no_label`. Use `--mode delete` only when the files are no longer needed.
+
+## Prepare images and videos
+
+Extract every tenth frame from a video:
+
+```bash
+python3 demo_yolo/data_preprocessing/extract_frames.py video.mp4 \
+  --out frames \
+  --every 10
+```
+
+Convert a folder of images to JPEG:
+
+```bash
+python3 demo_yolo/data_preprocessing/png_to_jpeg.py raw_images \
+  --out jpeg_images \
+  --quality 85
+```
