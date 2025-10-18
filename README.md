@@ -111,3 +111,13 @@ python3 demo_yolo/data_preprocessing/png_to_jpeg.py raw_images \
   --out jpeg_images \
   --quality 85
 ```
+
+## Prediction server
+
+Start the Flask backend with:
+
+```bash
+python3 -m gui.app
+```
+
+The server accepts image uploads and prediction requests on port 5002. The browser interface will be added next.

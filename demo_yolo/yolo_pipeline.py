@@ -113,13 +113,14 @@ def predict_model(args):
 
     if not results:
         print("[PREDICT] No results returned")
-        return
+        return [], None
 
     class_names = getattr(model, "names", {})
     csv_path = save_prediction_counts(results, class_names)
     print(f"[PREDICT] Finished {len(results)} prediction(s)")
     print(f"[PREDICT] Results saved to: {results[0].save_dir}")
     print(f"[PREDICT] Livestock counts saved to: {csv_path}")
+    return results, csv_path
 
 
 def build_parser():

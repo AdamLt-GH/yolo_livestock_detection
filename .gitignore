@@ -21,6 +21,7 @@ images/
 labels/
 runs/
 *.pt
+gui/static/results/
 
 # Private project documents
 documents/
