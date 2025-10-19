@@ -3,7 +3,7 @@ import csv
 import shutil
 from pathlib import Path
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from werkzeug.utils import secure_filename
 
 from demo_yolo.yolo_pipeline import predict_model
@@ -68,7 +68,7 @@ def create_app():
 
     @app.get("/")
     def index():
-        return jsonify({"status": "ready", "models": MODELS})
+        return render_template("index.html", models=MODELS)
 
     @app.post("/upload")
     def upload_images():

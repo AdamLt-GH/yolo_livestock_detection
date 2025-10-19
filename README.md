@@ -120,4 +120,4 @@ Start the Flask backend with:
 python3 -m gui.app
 ```
 
-The server accepts image uploads and prediction requests on port 5002. The browser interface will be added next.
+Open `http://127.0.0.1:5002` after starting the server. The page layout includes image uploads, model settings, prediction results, count summaries and an activity log.
