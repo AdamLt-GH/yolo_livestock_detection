@@ -121,3 +121,11 @@ python3 -m gui.app
 ```
 
 Open `http://127.0.0.1:5002` after starting the server. The page can upload images, choose a model, run predictions and browse the annotated results with count summaries.
+
+## Tests
+
+Run the model pipeline tests without downloading model weights:
+
+```bash
+python3 -m pytest demo_yolo/tests
+```

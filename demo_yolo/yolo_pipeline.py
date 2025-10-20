@@ -1,14 +1,19 @@
 """Commands for training livestock detection models."""
 
 import argparse
+import csv
 from pathlib import Path
 
 
-def train_model(args):
+def load_model(model_path):
     from ultralytics import YOLO
 
+    return YOLO(model_path)
+
+
+def train_model(args):
     print(f"[TRAIN] Loading model: {args.model}")
-    model = YOLO(args.model)
+    model = load_model(args.model)
     results = model.train(
         data=args.data,
         epochs=args.epochs,
@@ -32,12 +37,10 @@ def find_weights(weights, run_name):
 
 
 def validate_model(args):
-    from ultralytics import YOLO
-
     weights = find_weights(args.weights, args.run_name)
     print(f"[VAL] Loading weights: {weights}")
 
-    model = YOLO(str(weights))
+    model = load_model(str(weights))
     metrics = model.val(
         data=args.data,
         split=args.split,
@@ -61,8 +64,6 @@ def validate_model(args):
 
 
 def save_prediction_counts(results, class_names):
-    import pandas as pd
-
     if not isinstance(class_names, dict):
         class_names = dict(enumerate(class_names))
 
@@ -79,25 +80,25 @@ def save_prediction_counts(results, class_names):
 
         rows.append({"image": image_name, **counts})
 
-    table = pd.DataFrame(rows).fillna(0).sort_values("image")
-    for column in table.columns:
-        if column != "image":
-            table[column] = table[column].astype(int)
-
     save_dir = Path(results[0].save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
     csv_path = save_dir / "prediction_counts.csv"
-    table.to_csv(csv_path, index=False)
+    columns = ["image", *class_names.values()]
+    extra_columns = sorted(
+        {name for row in rows for name in row if name not in columns}
+    )
+    with csv_path.open("w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=columns + extra_columns)
+        writer.writeheader()
+        writer.writerows(sorted(rows, key=lambda row: row["image"]))
     return csv_path
 
 
 def predict_model(args):
-    from ultralytics import YOLO
-
     weights = find_weights(args.weights, args.run_name)
     print(f"[PREDICT] Loading weights: {weights}")
 
-    model = YOLO(str(weights))
+    model = load_model(str(weights))
     results = model.predict(
         source=args.source,
         conf=args.conf,
