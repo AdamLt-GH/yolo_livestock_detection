@@ -120,4 +120,4 @@ Start the Flask backend with:
 python3 -m gui.app
 ```
 
-Open `http://127.0.0.1:5002` after starting the server. The page layout includes image uploads, model settings, prediction results, count summaries and an activity log.
+Open `http://127.0.0.1:5002` after starting the server. The page can upload images, choose a model, run predictions and browse the annotated results with count summaries.
