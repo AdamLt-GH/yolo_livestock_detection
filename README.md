@@ -129,3 +129,9 @@ Run the model pipeline tests without downloading model weights:
 ```bash
 python3 -m pytest demo_yolo/tests
 ```
+
+Run the Flask upload and prediction tests:
+
+```bash
+python3 -m pytest gui_test
+```

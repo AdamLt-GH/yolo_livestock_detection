@@ -95,10 +95,14 @@ def create_app():
             return jsonify({"error": "Unknown model selected"}), 400
 
         requested = data.get("files") or []
+        if not isinstance(requested, list):
+            return jsonify({"error": "Files must be sent as a list"}), 400
+
         uploaded = [
             UPLOAD_DIR / secure_filename(name)
             for name in requested
-            if (UPLOAD_DIR / secure_filename(name)).is_file()
+            if isinstance(name, str)
+            and (UPLOAD_DIR / secure_filename(name)).is_file()
         ]
         if not uploaded:
             return jsonify({"error": "No uploaded images to predict"}), 400
