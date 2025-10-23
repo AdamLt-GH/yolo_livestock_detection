@@ -19,12 +19,13 @@ def find_pairs(source):
         print(f"[WARN] Could not find images and labels in {source}")
         return pairs
 
-    for image_path in sorted(images_dir.glob("*")):
+    for image_path in sorted(images_dir.rglob("*")):
         if image_path.suffix.lower() not in IMAGE_EXTENSIONS:
             continue
 
-        text_label = labels_dir / f"{image_path.stem}.txt"
-        json_label = labels_dir / f"{image_path.stem}.json"
+        relative_path = image_path.relative_to(images_dir)
+        text_label = (labels_dir / relative_path).with_suffix(".txt")
+        json_label = (labels_dir / relative_path).with_suffix(".json")
         nearby_json = image_path.with_suffix(".json")
 
         if text_label.exists():

@@ -1,32 +1,63 @@
 # YOLO Livestock Detection
 
-This project will use YOLO to detect and count livestock in images and videos.
+This project detects and counts livestock in images and videos with Ultralytics YOLO. It includes dataset preparation, training, validation, prediction, count reports and a browser interface.
 
-The main goals are:
+## Project structure
 
-- prepare labelled livestock datasets
-- train and validate YOLO models
-- run predictions on images and videos
-- save the number of detected animals
+```text
+checkpoints/                         local model weights for the browser
+demo_yolo/
+  data_preprocessing/
+    cleanup_yolo_unlabeled.py       remove images with no labels
+    extract_frames.py               extract frames from videos
+    png_to_jpeg.py                  convert image folders to JPEG
+  tests/
+    test_yolo_pipeline.py           model pipeline tests
+  merge_to_yolo.py                  merge and split labelled datasets
+  yolo_pipeline.py                  train, validate and predict
+gui/
+  static/app.js                     browser behaviour
+  templates/index.html              browser page
+  app.py                            Flask server
+gui_test/
+  test_app.py                       Flask and interface tests
+requirements.txt
+```
+
+Datasets, generated runs, model weights and private project documents are excluded from Git.
 
 ## Setup
 
-Create a virtual environment:
+Python 3.10 or newer is recommended.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-Install the requirements:
-
-```bash
 python3 -m pip install -r requirements.txt
 ```
 
+On Windows, activate the environment with:
+
+```powershell
+.venv\Scripts\activate
+```
+
+The commands use CPU by default. Pass `--device 0` to use the first CUDA GPU.
+
 ## Merge datasets
 
-The first dataset tool combines YOLO datasets that have matching `images` and `labels` folders:
+Each source needs an `images` folder and a matching `labels` folder. The folders can be flat or already contain train, validation and test splits.
+
+YOLO text labels are expected inside the labels folder. LabelMe JSON labels can be stored in the labels folder or beside each image.
+
+Create `classes.txt` with one class name per line:
+
+```text
+sheep
+cattle
+```
+
+Merge and split the sources:
 
 ```bash
 python3 demo_yolo/merge_to_yolo.py \
@@ -37,54 +68,11 @@ python3 demo_yolo/merge_to_yolo.py \
   raw_dataset/source_one raw_dataset/source_two
 ```
 
-The classes file contains one livestock class name per line. The script supports YOLO text labels and LabelMe JSON labels, checks class IDs against the list and creates `dataset.yaml` for training. It also creates separate train, validation and test folders. The random split uses seed 42 by default so it can be repeated.
-
-## Train a model
-
-The training command uses CPU by default. Use `--device 0` to train with the first CUDA GPU.
-
-```bash
-python3 demo_yolo/yolo_pipeline.py train \
-  --model yolo11n.pt \
-  --data merged_ds/dataset.yaml \
-  --epochs 50 \
-  --run-name livestock_model \
-  --device cpu
-```
-
-The trained weights are saved under `runs/detect/livestock_model/weights`.
-
-## Validate a model
-
-Pass the saved weights directly or use the name of an earlier training run:
-
-```bash
-python3 demo_yolo/yolo_pipeline.py val \
-  --run-name livestock_model \
-  --data merged_ds/dataset.yaml \
-  --split test \
-  --device cpu
-```
-
-The command prints precision, recall and mAP results after validation.
-
-## Run predictions
-
-The prediction source can be an image, video or folder of files:
-
-```bash
-python3 demo_yolo/yolo_pipeline.py predict \
-  --run-name livestock_model \
-  --source path/to/images \
-  --output-name livestock_results \
-  --device cpu
-```
-
-Annotated files are saved under `runs/detect/livestock_results` by default. A `prediction_counts.csv` file is saved in the same folder with the number of each livestock class found in every image.
+The script checks labels, converts LabelMe boxes, avoids filename overwrites and creates `merged_ds/dataset.yaml`. Seed 42 is used by default so the same split can be repeated.
 
 ## Clean a dataset
 
-Check for images with missing or empty labels before training:
+Preview images with missing or empty labels:
 
 ```bash
 python3 demo_yolo/data_preprocessing/cleanup_yolo_unlabeled.py \
@@ -92,7 +80,7 @@ python3 demo_yolo/data_preprocessing/cleanup_yolo_unlabeled.py \
   --dry-run
 ```
 
-Run without `--dry-run` to move those images into `merged_ds/no_label`. Use `--mode delete` only when the files are no longer needed.
+Run without `--dry-run` to move rejected files into `merged_ds/no_label`. Use `--mode delete` only when those files are no longer needed.
 
 ## Prepare images and videos
 
@@ -104,7 +92,7 @@ python3 demo_yolo/data_preprocessing/extract_frames.py video.mp4 \
   --every 10
 ```
 
-Convert a folder of images to JPEG:
+Convert an image folder to JPEG while keeping its folder structure:
 
 ```bash
 python3 demo_yolo/data_preprocessing/png_to_jpeg.py raw_images \
@@ -112,26 +100,71 @@ python3 demo_yolo/data_preprocessing/png_to_jpeg.py raw_images \
   --quality 85
 ```
 
-## Prediction server
+## Train a model
 
-Start the Flask backend with:
+```bash
+python3 demo_yolo/yolo_pipeline.py train \
+  --model yolo11n.pt \
+  --data merged_ds/dataset.yaml \
+  --epochs 50 \
+  --run-name livestock_model \
+  --device cpu
+```
+
+The best weights are saved under `runs/detect/livestock_model/weights`.
+
+## Validate a model
+
+Use a training run name:
+
+```bash
+python3 demo_yolo/yolo_pipeline.py val \
+  --run-name livestock_model \
+  --data merged_ds/dataset.yaml \
+  --split test \
+  --device cpu
+```
+
+You can also pass a checkpoint directly with `--weights path/to/best.pt`. Validation prints precision, recall, mAP50 and mAP50-95.
+
+## Run predictions
+
+The source can be an image, video or folder:
+
+```bash
+python3 demo_yolo/yolo_pipeline.py predict \
+  --run-name livestock_model \
+  --source path/to/images \
+  --output-name livestock_results \
+  --device cpu
+```
+
+The output folder contains annotated files and `prediction_counts.csv`. The CSV stores the number of each livestock class detected in every image.
+
+## Browser interface
+
+The browser supports YOLO 8, YOLO 10 and YOLO 11 model choices. Put the required `.pt` files in `checkpoints/` before starting it. See [checkpoints/README.md](checkpoints/README.md) for the accepted filenames.
+
+Start the Flask server:
 
 ```bash
 python3 -m gui.app
 ```
 
-Open `http://127.0.0.1:5002` after starting the server. The page can upload images, choose a model, run predictions and browse the annotated results with count summaries.
+Open `http://127.0.0.1:5002`. Upload images, choose a model, adjust confidence and IoU, then run the prediction. Annotated images and count summaries are shown in the page.
 
 ## Tests
 
-Run the model pipeline tests without downloading model weights:
+Run all tests:
 
 ```bash
-python3 -m pytest demo_yolo/tests
+python3 -m pytest
 ```
 
-Run the Flask upload and prediction tests:
+The tests use fake model results and temporary folders. They do not download weights or start model training.
+
+Run coverage if needed:
 
 ```bash
-python3 -m pytest gui_test
+python3 -m pytest --cov=demo_yolo --cov=gui --cov-report=term-missing
 ```
